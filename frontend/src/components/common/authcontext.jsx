@@ -1,5 +1,5 @@
 ﻿import { createContext, useState, useEffect, useContext } from 'react';
-import { auth } from '../utils/firebase';
+import { auth } from '../../utils/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const AuthContext = createContext({});
@@ -17,7 +17,6 @@ export function AuthProvider({ children }) {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
-          // You can add more user data from Firestore here later
         });
       } else {
         // User is signed out
@@ -27,7 +26,7 @@ export function AuthProvider({ children }) {
     });
 
     // Cleanup subscription
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
   const logout = async () => {

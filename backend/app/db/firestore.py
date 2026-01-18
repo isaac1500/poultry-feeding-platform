@@ -1,22 +1,13 @@
-﻿import firebase_admin
-from firebase_admin import credentials, firestore
+﻿# Firebase Realtime Database setup
+import firebase_admin
+from firebase_admin import credentials, db as firebase_db
 from app.core.config import settings
 import json
 import os
 
 def initialize_firebase():
-    """Initialize Firebase Admin SDK"""
+    """Initialize Firebase Admin SDK for Realtime Database"""
     try:
-        # For development/testing, we can use a mock or skip initialization
-        # In production, we'll use the actual service account
-        
-        # Check if we have required environment variables
-        if not settings.FIREBASE_PRIVATE_KEY or settings.FIREBASE_PRIVATE_KEY.startswith("-----BEGIN"):
-            # If we're in development with placeholder key, don't initialize Firebase
-            # We'll use a mock or skip
-            print("Development mode: Using placeholder Firebase credentials")
-            return None
-        
         # Create credentials from environment variables
         cred_dict = {
             "type": "service_account",
@@ -35,17 +26,26 @@ def initialize_firebase():
         
         # Initialize Firebase app if not already initialized
         if not firebase_admin._apps:
-            firebase_admin.initialize_app(cred)
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': f'https://{settings.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/'
+            })
         
-        return firestore.client()
-    
+        return firebase_db
+        
     except Exception as e:
         print(f"Error initializing Firebase: {e}")
         print("Running in development mode without Firebase")
         return None
 
-# Initialize Firestore client
+# Initialize Firebase database reference
 try:
-    db = initialize_firebase()
+    firebase_db_ref = initialize_firebase()
+    if firebase_db_ref:
+        db = firebase_db_ref.reference()  # Get database reference
+        print("Firebase Realtime Database initialized successfully")
+    else:
+        db = None
+        print("Using mock database for development")
 except:
-    db = None  # For development without Firebase
+    db = None
+    print("Failed to initialize Firebase, using mock database")

@@ -1,13 +1,48 @@
-﻿export default function Navbar() {
+﻿import { Link } from 'react-router-dom';
+import { useAuth } from '../authcontext.jsx';
+import './Navbar.module.css';
+
+export default function Navbar() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  };
+
   return (
-    <nav style={{ background: '#2E7D32', color: 'white', padding: '1rem' }}>
-      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>Poultry Feeding Platform</h1>
-        <div>
-          <a href="/dashboard" style={{ color: 'white', marginRight: '1rem' }}>Dashboard</a>
-          <a href="/flocks" style={{ color: 'white', marginRight: '1rem' }}>Flocks</a>
-          <a href="/recommendations" style={{ color: 'white', marginRight: '1rem' }}>Recommendations</a>
-          <a href="/login" style={{ color: 'white' }}>Login</a>
+    <nav className="navbar">
+      <div className="container navbar-container">
+        <div className="navbar-brand">
+          <Link to="/" className="navbar-logo">
+            <h1>Poultry Feeding Platform</h1>
+          </Link>
+        </div>
+        
+        <div className="navbar-menu">
+          {user ? (
+            <>
+              <Link to="/dashboard" className="nav-link">Dashboard</Link>
+              <Link to="/flocks" className="nav-link">Flocks</Link>
+              <Link to="/recommendations" className="nav-link">Recommendations</Link>
+              <Link to="/progress" className="nav-link">Progress</Link>
+              <Link to="/settings" className="nav-link">Settings</Link>
+              <div className="user-menu">
+                <span className="user-email">{user.email}</span>
+                <button onClick={handleLogout} className="btn-logout">
+                  Logout
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="nav-link">Login</Link>
+              <Link to="/register" className="btn-register">Register</Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
