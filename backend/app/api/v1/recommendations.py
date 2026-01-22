@@ -1,51 +1,32 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Any
-from app.api.deps import get_current_user, get_db
-from datetime import datetime
-import uuid
+﻿# backend/app/api/v1/recommendations.py
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+import logging
+
+from app.schemas.recommendation import (
+    RecommendationCreate, 
+    RecommendationResponse,
+    RecommendationSummary
+)
+from app.api.deps import get_current_user, get_db  # Changed from get_firestore_db to get_db
+from app.services.recommendation_engine import RecommendationEngine
+from firebase_admin import firestore
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-# Mock nutrition data for Uganda
-UGANDAN_INGREDIENTS = {
-    "maize": {"protein": 8.5, "energy": 3300, "cost_per_kg": 1200},
-    "soybean": {"protein": 40.0, "energy": 2400, "cost_per_kg": 2500},
-    "fishmeal": {"protein": 60.0, "energy": 2800, "cost_per_kg": 5000},
-    "sunflower": {"protein": 35.0, "energy": 2600, "cost_per_kg": 1800},
-    "rice_bran": {"protein": 12.0, "energy": 2800, "cost_per_kg": 800},
-    "wheat_bran": {"protein": 15.0, "energy": 2500, "cost_per_kg": 900},
-    "bone_meal": {"protein": 20.0, "energy": 1200, "cost_per_kg": 1500},
-}
-
-# Poultry requirements by type and age
-POULTRY_REQUIREMENTS = {
-    "broiler": {
-        "starter": {"protein": 22.0, "energy": 3000},
-        "grower": {"protein": 20.0, "energy": 3100},
-        "finisher": {"protein": 18.0, "energy": 3200}
-    },
-    "layer": {
-        "starter": {"protein": 20.0, "energy": 2800},
-        "grower": {"protein": 18.0, "energy": 2850},
-        "layer": {"protein": 16.0, "energy": 2900}
-    },
-    "local": {
-        "all": {"protein": 15.0, "energy": 2700}
-    }
-}
-
-@router.post("/generate")
-async def generate_recommendation(
-    flock_id: str,
-    available_ingredients: List[str],
-    budget_constraint: float = None,
+@router.post("/", response_model=RecommendationResponse)
+async def create_recommendation(
+    recommendation: RecommendationCreate,
     current_user: dict = Depends(get_current_user),
-    db = Depends(get_db)
+    db: firestore.Client = Depends(get_db)  # Changed here too
 ):
-    """Generate AI-based feeding recommendation"""
+    """
+    Create a new feed formulation recommendation
+    """
     try:
-        # Get flock details
-        flock_ref = db.collection("flocks").document(flock_id)
+        # First, get flock details to ensure it exists and belongs to user
+        flock_ref = db.collection("flocks").document(recommendation.flock_id)
         flock_doc = flock_ref.get()
         
         if not flock_doc.exists:
@@ -55,133 +36,157 @@ async def generate_recommendation(
             )
         
         flock_data = flock_doc.to_dict()
-        
-        # Check ownership
-        if flock_data["user_id"] != current_user["id"]:
+        if flock_data.get("user_id") != current_user["id"]:  # Changed from current_user["uid"] to current_user["id"]
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this flock"
             )
         
-        # Get bird type and age
-        bird_type = flock_data["bird_type"]
-        age_weeks = flock_data["age_weeks"]
+        # Initialize recommendation engine
+        engine = RecommendationEngine(db)
         
-        # Determine growth stage
-        if bird_type == "broiler":
-            if age_weeks < 3:
-                stage = "starter"
-            elif age_weeks < 5:
-                stage = "grower"
-            else:
-                stage = "finisher"
-        elif bird_type == "layer":
-            if age_weeks < 8:
-                stage = "starter"
-            elif age_weeks < 18:
-                stage = "grower"
-            else:
-                stage = "layer"
-        else:
-            stage = "all"
-        
-        # Get nutritional requirements
-        requirements = POULTRY_REQUIREMENTS[bird_type][stage]
-        
-        # Simple AI algorithm: optimize for cost while meeting requirements
-        available_nutrients = {}
-        for ingredient in available_ingredients:
-            if ingredient in UGANDAN_INGREDIENTS:
-                available_nutrients[ingredient] = UGANDAN_INGREDIENTS[ingredient]
-        
-        if not available_nutrients:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No valid ingredients provided"
-            )
-        
-        # Simple formulation (in reality, this would be more complex)
-        recommendation = {
-            "flock_id": flock_id,
-            "bird_type": bird_type,
-            "age_weeks": age_weeks,
-            "stage": stage,
-            "requirements": requirements,
-            "formulation": [],
-            "total_cost_per_kg": 0,
-            "estimated_daily_cost": 0,
-            "nutritional_analysis": {}
-        }
-        
-        # Mock formulation (replace with real algorithm)
-        total_birds = flock_data["number_of_birds"]
-        for ingredient, data in list(available_nutrients.items())[:3]:  # Use first 3 ingredients
-            percentage = 30 if len(recommendation["formulation"]) == 0 else 35
-            cost = data["cost_per_kg"] * (percentage / 100)
-            
-            recommendation["formulation"].append({
-                "ingredient": ingredient,
-                "percentage": percentage,
-                "cost_per_kg": data["cost_per_kg"],
-                "contribution_cost": cost
-            })
-            recommendation["total_cost_per_kg"] += cost
-        
-        # Calculate daily cost
-        avg_feed_per_bird = 0.12  # kg per bird per day
-        recommendation["estimated_daily_cost"] = (
-            recommendation["total_cost_per_kg"] * avg_feed_per_bird * total_birds
+        # Generate recommendation
+        result = await engine.generate_recommendation(
+            recommendation=recommendation,
+            user_id=current_user["id"],  # Changed from current_user["uid"] to current_user["id"]
+            flock_data=flock_data
         )
         
-        # Save recommendation to database
-        rec_id = str(uuid.uuid4())
-        now = datetime.now()
+        return result
         
-        rec_ref = db.collection("recommendations").document(rec_id)
-        rec_ref.set({
-            **recommendation,
-            "user_id": current_user["id"],
-            "created_at": now,
-            "budget_constraint": budget_constraint
-        })
-        
-        recommendation["id"] = rec_id
-        recommendation["created_at"] = now
-        
-        return recommendation
-    
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error creating recommendation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate recommendation: {str(e)}"
+            detail=f"Error creating recommendation: {str(e)}"
         )
 
-@router.get("/history")
-async def get_recommendation_history(
+@router.get("/", response_model=List[RecommendationSummary])
+async def get_recommendations(
     flock_id: str = None,
     current_user: dict = Depends(get_current_user),
-    db = Depends(get_db)
+    db: firestore.Client = Depends(get_db)  # Changed here too
 ):
-    """Get recommendation history"""
+    """
+    Get all recommendations for the current user
+    Optionally filter by flock_id
+    """
     try:
         recommendations_ref = db.collection("recommendations")
-        query = recommendations_ref.where("user_id", "==", current_user["id"])
+        
+        # Build query based on parameters
+        query = recommendations_ref.where("user_id", "==", current_user["id"])  # Changed to ["id"]
         
         if flock_id:
             query = query.where("flock_id", "==", flock_id)
         
-        recommendations = query.order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+        query = query.order_by("created_at", direction=firestore.Query.DESCENDING)
         
-        result = []
-        for rec in recommendations:
-            rec_data = rec.to_dict()
-            rec_data["id"] = rec.id
-            result.append(rec_data)
+        docs = query.stream()
         
-        return result
-    
+        recommendations = []
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            
+            # Get flock name for summary
+            if "flock_id" in data:
+                flock_ref = db.collection("flocks").document(data["flock_id"])
+                flock_doc = flock_ref.get()
+                if flock_doc.exists:
+                    flock_data = flock_doc.to_dict()
+                    data["flock_name"] = flock_data.get("name", "Unknown Flock")
+            
+            recommendations.append(RecommendationSummary(**data))
+        
+        return recommendations
+        
     except Exception as e:
+        logger.error(f"Error fetching recommendations: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get recommendations: {str(e)}"
+            detail="Error fetching recommendations"
+        )
+
+@router.get("/{recommendation_id}", response_model=RecommendationResponse)
+async def get_recommendation(
+    recommendation_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: firestore.Client = Depends(get_db)  # Changed here too
+):
+    """
+    Get a specific recommendation by ID
+    """
+    try:
+        rec_ref = db.collection("recommendations").document(recommendation_id)
+        rec_doc = rec_ref.get()
+        
+        if not rec_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Recommendation not found"
+            )
+        
+        data = rec_doc.to_dict()
+        
+        # Check ownership - changed from ["uid"] to ["id"]
+        if data.get("user_id") != current_user["id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this recommendation"
+            )
+        
+        data["id"] = recommendation_id
+        return RecommendationResponse(**data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching recommendation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error fetching recommendation"
+        )
+
+@router.delete("/{recommendation_id}")
+async def delete_recommendation(
+    recommendation_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: firestore.Client = Depends(get_db)  # Changed here too
+):
+    """
+    Delete a recommendation
+    """
+    try:
+        rec_ref = db.collection("recommendations").document(recommendation_id)
+        rec_doc = rec_ref.get()
+        
+        if not rec_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Recommendation not found"
+            )
+        
+        data = rec_doc.to_dict()
+        
+        # Check ownership - changed from ["uid"] to ["id"]
+        if data.get("user_id") != current_user["id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this recommendation"
+            )
+        
+        rec_ref.delete()
+        
+        return {"message": "Recommendation deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting recommendation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error deleting recommendation"
         )
