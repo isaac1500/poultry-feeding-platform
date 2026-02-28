@@ -1,0 +1,300 @@
+/* src/components/LanguageSwitcher/LanguageSwitcher.css */
+
+/* ===================================
+   LANGUAGE SWITCHER CONTAINER
+   =================================== */
+.language-switcher {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.switcher-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border-radius: 30px;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.switcher-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.12),
+    0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* ===================================
+   SWITCHER ICON
+   =================================== */
+.switcher-icon {
+  font-size: 20px;
+  line-height: 1;
+  animation: rotate 3s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.switcher-container:hover .switcher-icon {
+  animation: pulse-rotate 0.6s ease-in-out;
+}
+
+@keyframes pulse-rotate {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+/* ===================================
+   LANGUAGE BUTTONS
+   =================================== */
+.language-buttons {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 20px;
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5f6368;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple effect background */
+.lang-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(33, 150, 243, 0.15);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.lang-btn:hover::before {
+  width: 100px;
+  height: 100px;
+}
+
+.lang-btn:hover {
+  color: #2196F3;
+  transform: scale(1.05);
+}
+
+.lang-btn:active {
+  transform: scale(0.98);
+}
+
+/* Active state */
+.lang-btn.active {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+  box-shadow: 
+    0 4px 8px rgba(33, 150, 243, 0.3),
+    0 1px 3px rgba(33, 150, 243, 0.2);
+  transform: scale(1.05);
+}
+
+.lang-btn.active::before {
+  display: none;
+}
+
+.lang-btn.active:hover {
+  background: linear-gradient(135deg, #1976D2, #1565C0);
+  transform: scale(1.08);
+}
+
+/* Flag and label */
+.flag {
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+.lang-btn:hover .flag {
+  transform: scale(1.2) rotate(5deg);
+}
+
+.lang-btn.active .flag {
+  transform: scale(1.1);
+  animation: wave 0.5s ease-in-out;
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-10deg);
+  }
+}
+
+.label {
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
+@media (max-width: 768px) {
+  .language-switcher {
+    top: 15px;
+    right: 15px;
+  }
+
+  .switcher-container {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .switcher-icon {
+    font-size: 16px;
+  }
+
+  .lang-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .flag {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .language-switcher {
+    top: 10px;
+    right: 10px;
+  }
+
+  .switcher-container {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .switcher-icon {
+    display: none; /* Hide icon on very small screens */
+  }
+
+  .language-buttons {
+    padding: 2px;
+    gap: 4px;
+  }
+
+  .lang-btn {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .flag {
+    font-size: 14px;
+  }
+
+  .label {
+    font-size: 11px;
+  }
+}
+
+/* ===================================
+   ACCESSIBILITY
+   =================================== */
+.lang-btn:focus {
+  outline: none;
+  box-shadow: 
+    0 0 0 3px rgba(33, 150, 243, 0.3),
+    0 4px 8px rgba(33, 150, 243, 0.2);
+}
+
+.lang-btn.active:focus {
+  box-shadow: 
+    0 0 0 3px rgba(255, 255, 255, 0.5),
+    0 4px 8px rgba(33, 150, 243, 0.3);
+}
+
+/* ===================================
+   DARK MODE SUPPORT (Optional)
+   =================================== */
+@media (prefers-color-scheme: dark) {
+  .switcher-container {
+    background: linear-gradient(135deg, #2d2d2d, #1a1a1a);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .language-buttons {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .lang-btn {
+    color: #e0e0e0;
+  }
+
+  .lang-btn:hover {
+    color: #64B5F6;
+  }
+
+  .lang-btn.active {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+  }
+}
+
+/* ===================================
+   PRINT STYLES
+   =================================== */
+@media print {
+  .language-switcher {
+    display: none;
+  }
+}

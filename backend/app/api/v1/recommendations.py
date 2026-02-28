@@ -1,6 +1,6 @@
-﻿# backend/app/api/v1/recommendations.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+﻿# backend/app/api/v1/recommendations.py - CORRECTED VERSION
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional
 import logging
 
 from app.schemas.recommendation import (
@@ -8,7 +8,7 @@ from app.schemas.recommendation import (
     RecommendationResponse,
     RecommendationSummary
 )
-from app.api.deps import get_current_user, get_db  # Changed from get_firestore_db to get_db
+from app.api.deps import get_current_user, get_db
 from app.services.recommendation_engine import RecommendationEngine
 from firebase_admin import firestore
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 async def create_recommendation(
     recommendation: RecommendationCreate,
     current_user: dict = Depends(get_current_user),
-    db: firestore.Client = Depends(get_db)  # Changed here too
+    db: firestore.Client = Depends(get_db)
 ):
     """
     Create a new feed formulation recommendation
@@ -36,7 +36,7 @@ async def create_recommendation(
             )
         
         flock_data = flock_doc.to_dict()
-        if flock_data.get("user_id") != current_user["id"]:  # Changed from current_user["uid"] to current_user["id"]
+        if flock_data.get("user_id") != current_user.get("id"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this flock"
@@ -48,7 +48,7 @@ async def create_recommendation(
         # Generate recommendation
         result = await engine.generate_recommendation(
             recommendation=recommendation,
-            user_id=current_user["id"],  # Changed from current_user["uid"] to current_user["id"]
+            user_id=current_user.get("id"),
             flock_data=flock_data
         )
         
@@ -57,7 +57,7 @@ async def create_recommendation(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating recommendation: {str(e)}")
+        logger.error(f"Error creating recommendation: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating recommendation: {str(e)}"
@@ -65,9 +65,9 @@ async def create_recommendation(
 
 @router.get("/", response_model=List[RecommendationSummary])
 async def get_recommendations(
-    flock_id: str = None,
+    flock_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user),
-    db: firestore.Client = Depends(get_db)  # Changed here too
+    db: firestore.Client = Depends(get_db)
 ):
     """
     Get all recommendations for the current user
@@ -77,7 +77,7 @@ async def get_recommendations(
         recommendations_ref = db.collection("recommendations")
         
         # Build query based on parameters
-        query = recommendations_ref.where("user_id", "==", current_user["id"])  # Changed to ["id"]
+        query = recommendations_ref.where("user_id", "==", current_user.get("id"))
         
         if flock_id:
             query = query.where("flock_id", "==", flock_id)
@@ -99,12 +99,16 @@ async def get_recommendations(
                     flock_data = flock_doc.to_dict()
                     data["flock_name"] = flock_data.get("name", "Unknown Flock")
             
+            # Handle status field
+            if "status" in data and isinstance(data["status"], str):
+                data["status"] = data["status"].capitalize()
+            
             recommendations.append(RecommendationSummary(**data))
         
         return recommendations
         
     except Exception as e:
-        logger.error(f"Error fetching recommendations: {str(e)}")
+        logger.error(f"Error fetching recommendations: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error fetching recommendations"
@@ -114,7 +118,7 @@ async def get_recommendations(
 async def get_recommendation(
     recommendation_id: str,
     current_user: dict = Depends(get_current_user),
-    db: firestore.Client = Depends(get_db)  # Changed here too
+    db: firestore.Client = Depends(get_db)
 ):
     """
     Get a specific recommendation by ID
@@ -131,20 +135,24 @@ async def get_recommendation(
         
         data = rec_doc.to_dict()
         
-        # Check ownership - changed from ["uid"] to ["id"]
-        if data.get("user_id") != current_user["id"]:
+        # Check ownership
+        if data.get("user_id") != current_user.get("id"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to access this recommendation"
             )
         
         data["id"] = recommendation_id
+        
+        if "status" in data and isinstance(data["status"], str):
+            data["status"] = data["status"].capitalize()
+        
         return RecommendationResponse(**data)
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching recommendation: {str(e)}")
+        logger.error(f"Error fetching recommendation: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error fetching recommendation"
@@ -154,7 +162,7 @@ async def get_recommendation(
 async def delete_recommendation(
     recommendation_id: str,
     current_user: dict = Depends(get_current_user),
-    db: firestore.Client = Depends(get_db)  # Changed here too
+    db: firestore.Client = Depends(get_db)
 ):
     """
     Delete a recommendation
@@ -171,8 +179,8 @@ async def delete_recommendation(
         
         data = rec_doc.to_dict()
         
-        # Check ownership - changed from ["uid"] to ["id"]
-        if data.get("user_id") != current_user["id"]:
+        # Check ownership
+        if data.get("user_id") != current_user.get("id"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to delete this recommendation"
@@ -185,7 +193,7 @@ async def delete_recommendation(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting recommendation: {str(e)}")
+        logger.error(f"Error deleting recommendation: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error deleting recommendation"

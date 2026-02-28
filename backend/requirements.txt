@@ -1,11 +1,9 @@
-﻿fastapi==0.115.6
-uvicorn[standard]==0.34.0
-firebase-admin==6.6.0
-pyjwt==2.10.1
+﻿# FastAPI with Pydantic 1.x compatibility
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+firebase-admin==6.2.0
+pydantic==1.10.13
+python-multipart==0.0.6
+python-dotenv==1.0.0
+python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.20
-pydantic==2.10.4
-python-dotenv==1.0.1
-pytest==8.3.4
-pytest-asyncio==0.24.0
-httpx==0.28.1

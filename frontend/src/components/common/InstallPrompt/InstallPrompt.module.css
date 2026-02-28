@@ -1,0 +1,157 @@
+/* frontend/src/components/common/InstallPrompt/InstallPrompt.module.css */
+.install-prompt {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9998;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.prompt-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  width: 350px;
+  max-width: 90vw;
+}
+
+.prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.prompt-icon {
+  font-size: 24px;
+}
+
+.prompt-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+  flex: 1;
+}
+
+.prompt-close {
+  background: transparent;
+  border: none;
+  color: #95a5a6;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.prompt-close:hover {
+  background: #f5f5f5;
+}
+
+.prompt-body {
+  margin-bottom: 20px;
+}
+
+.prompt-body p {
+  margin: 0 0 15px 0;
+  color: #7f8c8d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.prompt-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.prompt-features li {
+  color: #2ecc71;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.prompt-features li::before {
+  content: "✓";
+  font-weight: bold;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.install-btn {
+  flex: 2;
+  background: #2ecc71;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.install-btn:hover {
+  background: #27ae60;
+}
+
+.dismiss-btn {
+  flex: 1;
+  background: #ecf0f1;
+  color: #7f8c8d;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.dismiss-btn:hover {
+  background: #d5dbdb;
+}
+
+@media (max-width: 768px) {
+  .install-prompt {
+    left: 20px;
+    right: 20px;
+    bottom: 10px;
+  }
+  
+  .prompt-card {
+    width: auto;
+    padding: 15px;
+  }
+  
+  .prompt-features {
+    grid-template-columns: 1fr;
+  }
+}

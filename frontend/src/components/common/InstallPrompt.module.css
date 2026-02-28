@@ -1,0 +1,89 @@
+/* frontend/src/components/common/InstallPrompt.css */
+.install-prompt {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9998;
+  animation: slideUp 0.3s ease-out;
+}
+
+.prompt-content {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 400px;
+  border: 1px solid #e0e0e0;
+}
+
+.prompt-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.prompt-text {
+  flex: 1;
+}
+
+.prompt-text h4 {
+  margin: 0 0 4px 0;
+  color: #2E7D32;
+  font-size: 16px;
+}
+
+.prompt-text p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.install-button {
+  background: #2E7D32;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.install-button:hover {
+  background: #1B5E20;
+}
+
+.dismiss-button {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.dismiss-button:hover {
+  background: #f5f5f5;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
